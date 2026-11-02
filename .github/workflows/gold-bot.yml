@@ -1,0 +1,24 @@
+name: gold-bot
+on:
+  schedule:
+    - cron: '4,19,34,49 * * * *'   # every 15 min, 24/7 (GitHub can run a few minutes late)
+  workflow_dispatch:               # "Run workflow" button for a manual test
+permissions:
+  contents: write
+concurrency: gold-bot
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run bot
+        env:
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+        run: bash bot.sh
+      - name: Save what was already sent
+        run: |
+          git config user.name gold-bot
+          git config user.email gold-bot@users.noreply.github.com
+          for f in bot_state.json data/chat_id.txt data/calendar.json data/calendar_next.json data/cal_ts; do if [ -f "$f" ]; then git add -f "$f"; fi; done
+          git diff --cached --quiet || (git commit -m "bot state" && git push)
